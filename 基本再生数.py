@@ -3,6 +3,7 @@ from sympy import symbols,  simplify, latex, pprint
 from typing import List, Dict,  Union
 
 #下面是定义的智能化基本再生数计算器类
+#============================================================================== 
 class SmartR0Calculator:
     """
     智能化基本再生数符号计算器
@@ -27,7 +28,14 @@ class SmartR0Calculator:
         self.R0 = None                         # 基本再生数，基本再生数的数据类型为符号表达式
         self.disease_free_equilibrium = {}     # 无病平衡点，无病平衡点的数据类型为字典
 
-    #这个函数是定义模型的微分方程组
+#============================================================================== 
+
+
+
+#============================================================================== 
+#下面是类的方法 
+#有这几个方法  提取模型的微分方程组、设置无病平衡点、提取F矩阵和V矩阵、计算基本再生数R0、分析结果
+    #提取模型的微分方程组
     def infectious_model(self, equations: Dict[str, sp.Expr], infected_compartments: List[str]):
         
         """
@@ -244,11 +252,26 @@ class SmartR0Calculator:
                         F_matrix[i, source_index] = transmission_rate
                         print(f"    -> F[{i},{source_index}] = {transmission_rate}")
                     
+                    elif len(infected_symbols_in_term) > 1:
+                        # 多个感染仓室的情况：分别提取每个的系数
+                        print(f"    多个传播源: {[str(s) for s in infected_symbols_in_term]}")
+                        for source_symbol in infected_symbols_in_term:
+                            source_index = self.infected_compartments.index(str(source_symbol))
+                            
+                            # 提取该感染仓室的传播率系数
+                            transmission_rate = linearized_term.coeff(source_symbol, 1)
+                            if transmission_rate is not None and transmission_rate != 0:
+                                F_matrix[i, source_index] = transmission_rate
+                                print(f"    -> F[{i},{source_index}] = {transmission_rate}")
+                    
                     elif len(infected_symbols_in_term) == 0:
                         # 线性化后不包含感染仓室符号，这是常数传播率
                         # 通常放在F[i,i]位置
                         F_matrix[i, i] = linearized_term
-                        print(f"    -> F[{i},{i}] = {linearized_term} (常数传播率)")                    
+                        print(f"    -> F[{i},{i}] = {linearized_term} (常数传播率)")     
+
+
+
     #这个函数是线性化单个项
     #线性化的步骤是先将非感染仓室替换为其平衡点值
     #然后对感染仓室进行泰勒展开，保留到一次项   
@@ -398,13 +421,12 @@ class SmartR0Calculator:
 #参数分别是模型名称（name自己取名即可） 微分方程组（equations） 感染相关仓室（infected_compartments） 无病平衡点（equilibrium）
 def run_example(name, equations, infected_compartments, equilibrium=None):
     """
-    运行示例的辅助函数，简化重复代码
     参数:
     name: 模型名称
     equations: 微分方程组
     infected_compartments: 感染相关仓室 列表
     equilibrium: 无病平衡点 字典（可选，如果不提供则自动设置）
-    该函数会创建计算器实例，定义模型，设置平衡点，计算R₀，并分析结果
+    该函数会创建计算器实例，定义模型，设置平衡点，计算R_0，并分析结果
     只需要传入模型相关参数即可  
     适用于所有示例模型
     例如：
