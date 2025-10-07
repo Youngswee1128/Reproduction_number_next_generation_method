@@ -78,8 +78,9 @@ def example_complex_seir_model():
         'I_D': w * (I + I_Q) - v * I_D,
         'R': v * (I + I_Q + I_D)
     }
-
-    run_example("示例4：复杂SEIR模型（包含隔离）", equations, ['E', 'E_Q', 'I'])
+    
+    run_example("示例4：复杂SEIR模型（包含隔离）", equations, ['E', 'E_Q', 'I'], 
+                {'S': N, 'E': 0, 'E_Q': 0, 'I': 0, 'I_Q': 0, 'I_D': 0, 'R': 0})
 
 def example_complex_host_model():
     """
@@ -101,7 +102,7 @@ def example_complex_host_model():
     
     run_example("示例5：宿主模型", equations, ['I', 'V'], {'I': 0, 'V': 0, 'S': 1, 'M': 1})
 
-def seiqr_model():
+def seiqr1_model():
     """
     SEIQR传染病模型（COVID-19专用模型）
     仓室：S E I Q R
@@ -128,7 +129,7 @@ def seiqr_model():
     
     run_example("SEIQR传染病模型（COVID-19专用）", equations, ['E'], {'S': Λ/d1, 'E': 0, 'I': 0, 'Q': 0, 'R': 0})
 
-def example_seiqr_model():
+def example_seiqr2_model():
     """
     示例：SEIQR模型（隔离模型）
     仓室：S E I Q R
@@ -248,19 +249,19 @@ def example_seirs_model_with_vital_dynamics():
     """
     # 定义符号 (lambda, mu, beta, sigma, gamma, alpha)
     S, E, I, R = symbols('S E I R')
-    lamda, mu, beta, sigma, gamma, alpha = symbols('lambda mu beta sigma gamma alpha', positive=True)
+    lamda, mu, beta, sigma, gamma, alpha, N = symbols('lambda mu beta sigma gamma alpha N', positive=True)
 
     # 定义微分方程组 (假设 N=1 或 S/N 简化为 S)
     equations = {
-        'S': lamda - mu * S - beta * S * I + alpha * R,   # 易感者：出生 - 自然死亡 - 感染 + 免疫衰减
-        'E': beta * S * I - (mu + sigma) * E,             # 暴露者：感染 - (自然死亡 + 转为感染者)
+        'S': lamda - mu * S - beta * S * I/N + alpha * R,   # 易感者：出生 - 自然死亡 - 感染 + 免疫衰减
+        'E': beta * S * I/N - (mu + sigma) * E,             # 暴露者：感染 - (自然死亡 + 转为感染者)
         'I': sigma * E - (mu + gamma) * I,                # 感染者：暴露者转化 - (自然死亡 + 康复)
         'R': gamma * I - (mu + alpha) * R                 # 康复者：康复 - (自然死亡 + 免疫衰减)
     }
 
     # 无病平衡点 (Disease-Free Equilibrium, DFE)
     # S* = lambda / mu, E* = 0, I* = 0, R* = 0
-    dfe = {'S': lamda/mu, 'E': 0, 'I': 0, 'R': 0}
+    dfe = {'S': N, 'E': 0, 'I': 0, 'R': 0}
     
     # R0 表达式: R0 = (beta * sigma) / ((mu + sigma) * (mu + gamma))
     
@@ -268,26 +269,66 @@ def example_seirs_model_with_vital_dynamics():
     #r0_expression = f"({beta} * {sigma}) / (({mu} + {sigma}) * ({mu} + {gamma}))"
     #print(f"SEIRS 模型的基本再生数 R0 = {r0_expression}")
 
+def complex_sepaihrd_v_model():
+    """
+    复杂SEPAIHRD-V模型（简化版本，便于R0计算）
+    包含：易感者(S)、暴露者(E)、无症状感染者(P)、有症状感染者(A)、重症感染者(I)、康复者(R)、死亡者(D)、疫苗接种者(V)
+    """
+    # 定义符号
+    S, E, P, A, I, R, D, V = symbols('S E P A I R D V')
+    Λ, β, η_A, η_I, ν, ω, ε, κ, σ, p2, γ_A, γ_I, δ_A, δ_I, μ, N = symbols(
+        'Λ β η_A η_I ν ω ε κ σ p2 γ_A γ_I δ_A δ_I μ N', positive=True)
+    
+    # 简化的微分方程组
+    equations = {
+        'S': Λ - β * S * (P + η_A * A + η_I * I) / N - ν * S + ω * V - μ * S,
+        'E': β * S * (P + η_A * A + η_I * I) / N - κ * E - μ * E,
+        'P': κ * E - σ * P - μ * P,
+        'A': σ * P * (1 - p2) - γ_A * A - δ_A * A - μ * A,
+        'I': σ * P * p2 - γ_I * I - δ_I * I - μ * I,
+        'R': γ_A * A + γ_I * I - μ * R,
+        'D': δ_A * A + δ_I * I,
+        'V': ν * S - β * V * (P + η_A * A + η_I * I) / N * (1 - ε) - ω * V - μ * V
+    }
+    
+    # 正确的无病平衡点
+    dfe = {
+        'S': N * (ω + μ) / (ν + ω + μ),#Λ * (ω + μ) / (μ * (ν + ω + μ)),
+        'E': 0,
+        'P': 0,
+        'A': 0,
+        'I': 0,
+        'R': 0,
+        'D': 0,
+        'V': Λ * ν / (μ * (ν + ω + μ))
+    }
+        
+    # 感染仓室：E, P, A, I
+    run_example("简化SEPAIHRD-V模型", equations, ['E', 'P', 'A', 'I'], dfe)
+
+
 #主函数
 if __name__ == "__main__":
     # 运行所有示例
-    example_sir_model()
-    example_seir_model()
-    example_seir_with_vaccination()
-    example_complex_seir_model()
-    example_complex_host_model()
-    example_seiqr_model()
-    example_seiqr_model()
-    example_mseir_model()
-    example_seir_model_with_birth_death()
-    example_seir_model_with_vital_dynamics()
-    example_msir_model_with_vital_dynamics()
-    example_seirs_model_with_vital_dynamics()
+    #example_sir_model()
+    #example_seir_model()
+    #example_seir_with_vaccination()
+    #example_complex_seir_model()
+    #example_complex_host_model()
+    #seiqr1_model()
+    #example_seiqr2_model()
+    #example_mseir_model()
+    #example_seir_model_with_birth_death()
+    #example_seir_model_with_vital_dynamics()
+    #example_msir_model_with_vital_dynamics()
+    #example_seirs_model_with_vital_dynamics()
+    complex_sepaihrd_v_model()
     print("\n\n" + "=" * 80)
     print("计算结束")
 
-    #print("=" * 80)
-    #print("""         
+#=========================================================================================
+    # 以下是一些模板代码，可以复制粘贴使用
+            
     #def 函数名():
     # 定义仓室符号
     #S, E, I, R = symbols('S E I R')
@@ -308,11 +349,4 @@ if __name__ == "__main__":
     
     # 方式2：自动设置无病平衡点（系统会自动将感染仓室设为0，非感染仓室设为仓室初值的符号例如：S0）
     #run_example("模型的名称", equations, ['E','I'])
-    #""")
-
-    #print("\n\n" + "=" * 80)
-    #print("""
-    #      需要增加模型的话只需要在上面增加一个函数，然后在主函数中调用即可
-    #      例如增加一个SEIR模型，只需要增加一个example_seir_model()函数，然后在主函数中调用
-    #      例如：example_seir_model()  
     #""")
