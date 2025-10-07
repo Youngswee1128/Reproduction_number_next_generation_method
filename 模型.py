@@ -3,6 +3,7 @@ from sympy import symbols,  simplify, latex, pprint
 from typing import List, Dict,  Union
 from sympy import Matrix
 from 基本再生数 import run_example
+
 #下面都是一些示例模型=======================================================================
 def example_sir_model():
     """
@@ -350,3 +351,4 @@ if __name__ == "__main__":
     # 方式2：自动设置无病平衡点（系统会自动将感染仓室设为0，非感染仓室设为仓室初值的符号例如：S0）
     #run_example("模型的名称", equations, ['E','I'])
     #""")
+
